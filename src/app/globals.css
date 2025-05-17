@@ -1,26 +1,79 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --foreground-rgb: 255, 255, 255;
+  --background-start-rgb: 0, 0, 0;
+  --background-end-rgb: 0, 0, 0;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  color: rgb(var(--foreground-rgb));
+  background: transparent;
+  overflow: hidden;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* Common container styles */
+.pokemon-container {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  gap: 0.25rem;
+  align-items: center;
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Horizontal layout */
+.pokemon-container.horizontal {
+  flex-direction: row;
+  flex-wrap: nowrap;
+  justify-content: center;
+}
+
+/* Vertical layout */
+.pokemon-container.vertical {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  justify-content: center;
+}
+
+/* Base sprite size */
+.pokemon-sprite {
+  position: relative;
+  flex-shrink: 1;
+}
+
+/* Make horizontal sprites a percentage of container width */
+.horizontal .pokemon-sprite {
+  width: calc(100% / var(--sprite-count));
+  max-width: 96px;
+  aspect-ratio: 1 / 1;
+}
+
+/* Make vertical sprites a percentage of container height */
+.vertical .pokemon-sprite {
+  height: calc(100% / 50);
+  max-height: 96px;
+  aspect-ratio: 1 / 1;
+}
+
+/* Pokemon image inside sprite container */
+.pokemon-sprite img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* Item sprite positioning */
+.item-sprite {
+  position: absolute;
+  bottom: -5%;
+  right: -5%;
+  width: 33%;
+  height: 33%;
 }
