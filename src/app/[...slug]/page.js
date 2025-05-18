@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, use } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 
 export default function PokepasteBrowserSource() {
@@ -9,11 +9,18 @@ export default function PokepasteBrowserSource() {
   const [pokemon, setPokemon] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [forceUpdate, setForceUpdate] = useState(0);
+  const containerRef = useRef(null);
 
-  // Get layout preferences from URL params (with defaults)
-  const layout = searchParams.get('layout') || 'horizontal';
-  const scale = parseInt(searchParams.get('scale') || '100', 10) / 100;
-  const maxSprites = 6; // Default max sprites to 6
+  // Force a re-render on window resize
+  useEffect(() => {
+    const handleResize = () => {
+      setForceUpdate(n => n + 1);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     if (!params?.slug) {
@@ -46,7 +53,7 @@ export default function PokepasteBrowserSource() {
     }
 
     fetchPokepaste(pasteUrl);
-  }, [params, maxSprites]);
+  }, [params]);
 
   async function fetchPokepaste(url) {
     try {
@@ -57,7 +64,7 @@ export default function PokepasteBrowserSource() {
       }
 
       const data = await response.json();
-      setPokemon(data.pokemon.slice(0, maxSprites));
+      setPokemon(data.pokemon.slice(0, 6));
       setLoading(false);
     } catch (err) {
       console.error('Error fetching pokepaste:', err);
@@ -75,31 +82,33 @@ export default function PokepasteBrowserSource() {
     return <div className="text-white p-5 bg-black/50 rounded">{error}</div>;
   }
 
-  // Main container style
-  const containerStyle = {
-    display: 'flex',
-    flexDirection: layout === 'vertical' ? 'column' : 'row',
-    flexWrap: 'nowrap',
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: '100%',
-    height: '100vh',
-    gap: '0.5rem',
-    margin: 0,
-    padding: 0,
-    background: 'transparent',
-    overflow: 'hidden',
-    transform: `scale(${scale})`
-  };
+  console.log('Render triggered by forceUpdate:', forceUpdate);
 
-  // Calculate sizes based on the number of Pokémon
-  const spriteCount = pokemon.length || 1;
-  const spriteSize = layout === 'vertical'
-    ? { height: `calc(100% / ${spriteCount})`, width: 'auto' }
-    : { width: `calc(100% / ${spriteCount})`, height: 'auto' };
+  let isVertical = true;
+  if (typeof window !== 'undefined') {
+    if (containerRef.current) {
+      const { width, height } = containerRef.current.getBoundingClientRect();
+      isVertical = height > width;
+    } else {
+      isVertical = window.innerHeight > window.innerWidth;
+    }
+  }
 
   return (
-    <div style={containerStyle}>
+    <div ref={containerRef} style={{
+      display: 'flex',
+      flexDirection: isVertical ? 'column' : 'row',
+      flexWrap: 'nowrap',
+      justifyContent: 'center',
+      alignItems: 'center',
+      width: '100%',
+      height: '100vh',
+      gap: '0.5rem',
+      margin: 0,
+      padding: '0.5rem',
+      background: 'transparent',
+      overflow: 'hidden',
+    }}>
       {pokemon.map((mon, index) => (
         <div
           key={index}
@@ -109,7 +118,8 @@ export default function PokepasteBrowserSource() {
             minHeight: 0,
             minWidth: 0,
             aspectRatio: '1/1',
-            ...spriteSize
+            width: 'auto',
+            height: 'auto'
           }}
         >
           <PokemonImage
