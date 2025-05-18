@@ -9,24 +9,40 @@ export default function PokepasteBrowserSource() {
   const [pokemon, setPokemon] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
+
   // Get layout preferences from URL params (with defaults)
   const layout = searchParams.get('layout') || 'horizontal';
   const scale = parseInt(searchParams.get('scale') || '100', 10) / 100;
-  const maxSprites = parseInt(searchParams.get('max') || '6', 10);
+  const maxSprites = 6; // Default max sprites to 6
 
   useEffect(() => {
-    if (!params?.slug) return;
+    if (!params?.slug) {
+      console.error('No slug provided in URL');
+      return;
+    }
 
     const slugPath = Array.isArray(params.slug) ? params.slug.join('/') : params.slug;
-    
+
+    console.log('Slug path:', slugPath);
+
     let pasteUrl;
-    if (slugPath.startsWith('pokepast.es/')) {
-      pasteUrl = `https://${slugPath}`;
+    const pokepasteIndex = slugPath.indexOf('pokepast.es/');
+
+    if (pokepasteIndex !== -1) {
+      // Extract everything from "pokepast.es" onwards
+      const extractedPath = slugPath.substring(pokepasteIndex);
+
+      // Ensure it has proper http(s) prefix
+      pasteUrl = `https://${extractedPath}`;
     } else {
-      setError('Invalid URL format');
-      setLoading(false);
-      return;
+      // Check if it's just a paste ID (hexadecimal string)
+      if (/^[a-f0-9]+$/.test(slugPath)) {
+        pasteUrl = `https://pokepast.es/${slugPath}`;
+      } else {
+        setError('Invalid URL format. Must contain "pokepast.es" or be a valid paste ID.');
+        setLoading(false);
+        return;
+      }
     }
 
     fetchPokepaste(pasteUrl);
@@ -35,11 +51,11 @@ export default function PokepasteBrowserSource() {
   async function fetchPokepaste(url) {
     try {
       const response = await fetch(`/api/fetch-pokepaste?url=${encodeURIComponent(url)}`);
-      
+
       if (!response.ok) {
         throw new Error(`Failed to fetch: ${response.status}`);
       }
-      
+
       const data = await response.json();
       setPokemon(data.pokemon.slice(0, maxSprites));
       setLoading(false);
@@ -78,15 +94,15 @@ export default function PokepasteBrowserSource() {
 
   // Calculate sizes based on the number of Pokémon
   const spriteCount = pokemon.length || 1;
-  const spriteSize = layout === 'vertical' 
-    ? { height: `calc(100% / ${spriteCount})`, width: 'auto', maxWidth: '96px' }
-    : { width: `calc(100% / ${spriteCount})`, height: 'auto', maxHeight: '96px' };
+  const spriteSize = layout === 'vertical'
+    ? { height: `calc(100% / ${spriteCount})`, width: 'auto' }
+    : { width: `calc(100% / ${spriteCount})`, height: 'auto' };
 
   return (
     <div style={containerStyle}>
       {pokemon.map((mon, index) => (
-        <div 
-          key={index} 
+        <div
+          key={index}
           style={{
             position: 'relative',
             flex: '1 1 0',
@@ -96,8 +112,8 @@ export default function PokepasteBrowserSource() {
             ...spriteSize
           }}
         >
-          <PokemonImage 
-            pokemon={mon} 
+          <PokemonImage
+            pokemon={mon}
             alt={mon.name}
           />
         </div>
@@ -114,7 +130,7 @@ function PokemonImage({ pokemon, alt }) {
 
   const handleImageError = () => {
     setImageError(true);
-    
+
     // Try the next fallback URL if available
     if (pokemon.fallbackUrls && fallbackIndex < pokemon.fallbackUrls.length) {
       setCurrentSrc(pokemon.fallbackUrls[fallbackIndex]);
@@ -132,7 +148,7 @@ function PokemonImage({ pokemon, alt }) {
 
   return (
     <>
-      <img 
+      <img
         src={currentSrc}
         alt={alt}
         title={alt}
@@ -146,9 +162,9 @@ function PokemonImage({ pokemon, alt }) {
         }}
       />
       {pokemon.item && (
-        <img 
+        <img
           className="item-sprite"
-          src={pokemon.itemUrl} 
+          src={pokemon.itemUrl}
           alt="Item"
           style={{
             position: 'absolute',
