@@ -16,7 +16,7 @@ export default function Home() {
         {/* URL example */}
         <div className="bg-gray-800 p-4 rounded-lg mb-10">
           <code className="text-green-400 text-md">
-            https://obs-pokepaste.vercel.app/[pokepaste url]
+            https://obs-pokepaste-api.vercel.app/[pokepaste url]
           </code>
         </div>
         
