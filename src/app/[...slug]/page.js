@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef, useLayoutEffect } from 'react';
+import { useEffect, useState, useRef, use } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 
 export default function PokepasteBrowserSource() {
@@ -9,25 +9,15 @@ export default function PokepasteBrowserSource() {
   const [pokemon, setPokemon] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [layout, setLayout] = useState('vertical');
+  const [forceUpdate, setForceUpdate] = useState(0);
   const containerRef = useRef(null);
 
-  // Track window resize directly
+  // Force a re-render on window resize
   useEffect(() => {
     const handleResize = () => {
-      if (containerRef.current) {
-        const width = containerRef.current.clientWidth;
-        const height = containerRef.current.clientHeight;
-        const newLayout = width > height ? 'horizontal' : 'vertical';
-        console.log('Detected layout change:', newLayout, width, height);
-        setLayout(newLayout);
-      }
+      setForceUpdate(n => n + 1);
     };
 
-    // Run once on mount
-    handleResize();
-
-    // Add window resize listener
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
@@ -92,13 +82,22 @@ export default function PokepasteBrowserSource() {
     return <div className="text-white p-5 bg-black/50 rounded">{error}</div>;
   }
 
-  console.log('Current layout:', layout);
-  console.log('Container dimensions:', containerRef.current?.clientWidth, containerRef.current?.clientHeight);
+  console.log('Render triggered by forceUpdate:', forceUpdate);
+
+  let isVertical = true;
+  if (typeof window !== 'undefined') {
+    if (containerRef.current) {
+      const { width, height } = containerRef.current.getBoundingClientRect();
+      isVertical = height > width;
+    } else {
+      isVertical = window.innerHeight > window.innerWidth;
+    }
+  }
 
   return (
     <div ref={containerRef} style={{
       display: 'flex',
-      flexDirection: layout === 'vertical' ? 'column' : 'row',
+      flexDirection: isVertical ? 'column' : 'row',
       flexWrap: 'nowrap',
       justifyContent: 'center',
       alignItems: 'center',
