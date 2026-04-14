@@ -53,6 +53,12 @@ function extractPokemonData(html) {
             itemUrl = `https://pokepast.es${itemUrl}`;
         }
 
+        // Extract item name from the first line (e.g. "Pikachu @ Choice Scarf")
+        const itemMatch = preText.split('\n')[0].match(/@\s*(.+)/);
+        const cleanItemName = itemMatch
+            ? itemMatch[1].trim().replace(/\s+/g, '-').replace(/['.:]/g, '').toLowerCase()
+            : null;
+
         // Extract the clean Pokémon name for the fallback URL
         let cleanName = "";
 
@@ -66,26 +72,39 @@ function extractPokemonData(html) {
                 .toLowerCase();             // Convert to lowercase
         }
 
+        // Champions sprite is highest priority — try it first
+        const championsUrl = `https://raw.githubusercontent.com/KevinToodlepoot/pokemon-champions-sprites/main/sprites/${cleanName}.png`;
+
         // Create an array of fallback URLs
         const fallbackUrls = [
+            spriteUrl,  // original pokepaste.es sprite
             `https://img.pokemondb.net/sprites/home/normal/${cleanName}.png`,
             `https://img.pokemondb.net/sprites/sword-shield/normal/${cleanName}.png`,
             `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${getPokemonNumberFromName(cleanName)}.png`
-        ];
+        ].filter(Boolean);
+
+        // Champions item URL is highest priority
+        const championsItemUrl = cleanItemName
+            ? `https://raw.githubusercontent.com/KevinToodlepoot/pokemon-champions-sprites/main/items/${cleanItemName}.png`
+            : null;
+
+        const resolvedItemUrl = championsItemUrl || itemUrl;
 
         pokemon.push({
             name,
-            spriteUrl,
-            fallbackUrls,  // Add the fallback URLs to the response
-            itemUrl,
-            item: itemUrl ? 'Item' : null,
-            cleanName     // Include the clean name for debugging
+            spriteUrl: championsUrl,
+            fallbackUrls,
+            itemUrl: resolvedItemUrl,
+            itemFallbackUrl: championsItemUrl ? itemUrl : null,
+            item: resolvedItemUrl ? 'Item' : null,
+            cleanName
         });
 
         console.log(`Processing Pokémon: ${name}`);
         console.log(`Clean name: ${cleanName}`);
         console.log(`Primary URL: ${spriteUrl}`);
         console.log(`Fallback URLs: ${fallbackUrls.join(', ')}`);
+        console.log(`Item name: ${cleanItemName}, Item URL: ${resolvedItemUrl}`);
     });
 
     return pokemon;
