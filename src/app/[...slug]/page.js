@@ -132,6 +132,31 @@ export default function PokepasteBrowserSource() {
   );
 }
 
+function ItemImage({ pokemon }) {
+  const [src, setSrc] = useState(pokemon.itemUrl);
+
+  return (
+    <img
+      className="item-sprite"
+      src={src}
+      alt="Item"
+      onError={() => {
+        if (pokemon.itemFallbackUrl && src !== pokemon.itemFallbackUrl) {
+          setSrc(pokemon.itemFallbackUrl);
+        }
+      }}
+      style={{
+        position: 'absolute',
+        bottom: '-5%',
+        right: '-5%',
+        width: '33%',
+        height: '33%',
+        objectFit: 'contain'
+      }}
+    />
+  );
+}
+
 // Component to handle image fallbacks
 function PokemonImage({ pokemon, alt }) {
   const [currentSrc, setCurrentSrc] = useState(pokemon.spriteUrl);
@@ -172,19 +197,7 @@ function PokemonImage({ pokemon, alt }) {
         }}
       />
       {pokemon.item && (
-        <img
-          className="item-sprite"
-          src={pokemon.itemUrl}
-          alt="Item"
-          style={{
-            position: 'absolute',
-            bottom: '-5%',
-            right: '-5%',
-            width: '33%',
-            height: '33%',
-            objectFit: 'contain'
-          }}
-        />
+        <ItemImage pokemon={pokemon} />
       )}
     </>
   );

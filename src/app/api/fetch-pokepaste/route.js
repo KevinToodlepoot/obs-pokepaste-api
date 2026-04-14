@@ -33,78 +33,76 @@ function extractPokemonData(html) {
     const pokemon = [];
 
     $('article').each((i, el) => {
-        const imgPokemon = $(el).find('.img-pokemon').attr('src');
-        const imgItem = $(el).find('.img-item').attr('src');
+        const preText   = $(el).find('pre').text();
+        const name      = parsePokemonName(preText);
+        const cleanName = toCleanName(name);
+        const cleanItem = toCleanItemName(preText);
 
-        // Extract pokémon name from the pre tag
-        const preText = $(el).find('pre').text();
-        const nameMatch = preText.match(/^([^@]+)/);
-        let name = nameMatch ? nameMatch[1].trim() : 'Unknown Pokémon';
+        const rawSprite = resolveUrl($(el).find('.img-pokemon').attr('src'), 'https://pokepast.es');
+        const rawItem   = resolveUrl($(el).find('.img-item').attr('src'),    'https://pokepast.es');
 
-        // Create full URLs for the sprites
-        let spriteUrl = imgPokemon;
-        let itemUrl = imgItem;
-
-        if (spriteUrl && !spriteUrl.startsWith('http')) {
-            spriteUrl = `https://pokepast.es${spriteUrl}`;
-        }
-
-        if (itemUrl && !itemUrl.startsWith('http')) {
-            itemUrl = `https://pokepast.es${itemUrl}`;
-        }
-
-        // Extract the clean Pokémon name for the fallback URL
-        let cleanName = "";
-
-        // Remove form indicators and clean up the name for the fallback URL
-        if (name) {
-            // Handle special forms like "Pokémon-Form"
-            cleanName = name.split('@')[0].trim()        // Remove everything after @
-                .split('(')[0].trim()        // Remove everything after (
-                .replace(/\s+/g, '-')       // Replace spaces with hyphens
-                .replace(/['.:]/g, '')      // Remove special characters
-                .toLowerCase();             // Convert to lowercase
-        }
-
-        // Create an array of fallback URLs
-        const fallbackUrls = [
-            `https://img.pokemondb.net/sprites/home/normal/${cleanName}.png`,
-            `https://img.pokemondb.net/sprites/sword-shield/normal/${cleanName}.png`,
-            `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${getPokemonNumberFromName(cleanName)}.png`
-        ];
+        const { spriteUrl, fallbackUrls } = buildSpriteData(cleanName, rawSprite);
+        const { itemUrl, itemFallbackUrl } = buildItemData(cleanItem, rawItem);
 
         pokemon.push({
             name,
+            cleanName,
             spriteUrl,
-            fallbackUrls,  // Add the fallback URLs to the response
+            fallbackUrls,
             itemUrl,
+            itemFallbackUrl,
             item: itemUrl ? 'Item' : null,
-            cleanName     // Include the clean name for debugging
         });
-
-        console.log(`Processing Pokémon: ${name}`);
-        console.log(`Clean name: ${cleanName}`);
-        console.log(`Primary URL: ${spriteUrl}`);
-        console.log(`Fallback URLs: ${fallbackUrls.join(', ')}`);
     });
 
     return pokemon;
 }
 
-// Helper function to get Pokémon numbers for common Pokémon
-// This is a simplified version - in a real app you'd want a complete mapping
-function getPokemonNumberFromName(name) {
-    const commonPokemon = {
-        'pikachu': 25,
-        'charizard': 6,
-        'bulbasaur': 1,
-        'squirtle': 7,
-        'eevee': 133,
-        'mewtwo': 150,
-        'gengar': 94,
-        'dragonite': 149,
-        // Add more as needed
-    };
+// --- URL helpers ---
 
-    return commonPokemon[name] || 1; // Default to Bulbasaur if not found
+function resolveUrl(url, base) {
+    if (!url) return null;
+    return url.startsWith('http') ? url : `${base}${url}`;
+}
+
+function buildSpriteData(cleanName, rawSpriteUrl) {
+    const spriteUrl = `https://raw.githubusercontent.com/KevinToodlepoot/pokemon-champions-sprites/main/sprites/${cleanName}.png`;
+    const fallbackUrls = [
+        rawSpriteUrl,
+        `https://img.pokemondb.net/sprites/home/normal/${cleanName}.png`,
+        `https://img.pokemondb.net/sprites/sword-shield/normal/${cleanName}.png`,
+    ].filter(Boolean);
+
+    return { spriteUrl, fallbackUrls };
+}
+
+function buildItemData(cleanItemName, rawItemUrl) {
+    if (!cleanItemName) {
+        return { itemUrl: rawItemUrl, itemFallbackUrl: null };
+    }
+
+    const championsItemUrl = `https://raw.githubusercontent.com/KevinToodlepoot/pokemon-champions-sprites/main/items/${cleanItemName}.png`;
+    return { itemUrl: championsItemUrl, itemFallbackUrl: rawItemUrl };
+}
+
+// --- Parsing helpers ---
+
+function parsePokemonName(preText) {
+    const match = preText.match(/^([^@]+)/);
+    return match ? match[1].trim() : 'Unknown Pokémon';
+}
+
+function toCleanName(rawName) {
+    return rawName
+        .split('@')[0].trim()
+        .split('(')[0].trim()
+        .replace(/\s+/g, '-')
+        .replace(/['.:]/g, '')
+        .toLowerCase();
+}
+
+function toCleanItemName(preText) {
+    const match = preText.split('\n')[0].match(/@\s*(.+)/);
+    if (!match) return null;
+    return match[1].trim().replace(/\s+/g, '-').replace(/['.:]/g, '').toLowerCase();
 }
