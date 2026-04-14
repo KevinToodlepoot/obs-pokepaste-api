@@ -1,11 +1,13 @@
 'use client';
 
-import { useEffect, useState, useRef, use } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
+import { parseFormatParams } from '@/lib/parseFormatParams';
 
 export default function PokepasteBrowserSource() {
   const params = useParams();
   const searchParams = useSearchParams();
+  const formatConfig = parseFormatParams(searchParams);
   const [pokemon, setPokemon] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -122,6 +124,7 @@ export default function PokepasteBrowserSource() {
             height: 'auto'
           }}
         >
+          {formatConfig && <BackgroundShape config={formatConfig} />}
           <PokemonImage
             pokemon={mon}
             alt={mon.name}
@@ -151,7 +154,8 @@ function ItemImage({ pokemon }) {
         right: '-5%',
         width: '33%',
         height: '33%',
-        objectFit: 'contain'
+        objectFit: 'contain',
+        zIndex: 2,
       }}
     />
   );
@@ -193,12 +197,36 @@ function PokemonImage({ pokemon, alt }) {
           width: '100%',
           height: '100%',
           objectFit: 'contain',
-          opacity: imageError ? 0.5 : 1, // Dim the image if it's a fallback
+          opacity: imageError ? 0.5 : 1,
+          zIndex: 1,
         }}
       />
       {pokemon.item && (
         <ItemImage pokemon={pokemon} />
       )}
     </>
+  );
+}
+
+function BackgroundShape({ config }) {
+  const { bg, bw, bh, br, bf, bx, by } = config;
+  const r = parseInt(bg.slice(0, 2), 16);
+  const g = parseInt(bg.slice(2, 4), 16);
+  const b = parseInt(bg.slice(4, 6), 16);
+  const a = (parseInt(bg.slice(6, 8), 16) / 255).toFixed(3);
+  return (
+    <div style={{
+      position: 'absolute',
+      width: `${bw}%`,
+      height: `${bh}%`,
+      left: `${50 + bx}%`,
+      top: `${50 + by}%`,
+      transform: 'translate(-50%, -50%)',
+      borderRadius: `${br}%`,
+      backgroundColor: `rgba(${r},${g},${b},${a})`,
+      filter: bf > 0 ? `blur(${(bf * 0.3).toFixed(1)}px)` : 'none',
+      zIndex: 0,
+      pointerEvents: 'none',
+    }} />
   );
 }
